@@ -8,15 +8,38 @@ public class PlayerNetwork : NetworkBehaviour {
 
     // network variable is synced across server/host and client
     // passed perms that allow 
-    private NetworkVariable<int> randomNumber = new NetworkVariable<int>(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    //private NetworkVariable<int> randomNumber = new NetworkVariable<int>(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    // here we pass custom data type struct into NetworkVariable
+    private NetworkVariable<MyCustomData> randomNumber = new NetworkVariable<MyCustomData>(
+        new MyCustomData {
+            _int = 56,
+            _bool = true
+        }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+
+    // NetworkVariables cannot hold reference variable types, only value types
+    // here we make a custom data type using a struct that implments INetworkSerializable so that Unity knows how to serialize our custom struct
+    public struct MyCustomData : INetworkSerializable {
+        public int _int;
+        public bool _bool;
+
+        // implemented from INetworkSerializable
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref _int);
+            serializer.SerializeValue(ref _bool);
+        }
+    }
+    
     // runs when an owned NetworkVariable gets updated
     public override void OnNetworkSpawn() {
         // onValueChange delegation gets run everytime the NetworkVariable is updated
         // delegation requires two parameters (previousValue and newValue parameters get passed into function)
-        randomNumber.OnValueChanged += (int previousValue, int newValue) => {
-            Debug.Log("previousValue: " + previousValue + " | newValue: " + newValue);
-            Debug.Log("OwnerClientId: " + OwnerClientId + " | randomNumber: " + randomNumber.Value);
+        // here we are refering to the custom type created from struct and accessing the int from the struct
+        randomNumber.OnValueChanged += (MyCustomData previousValue, MyCustomData newValue) => {
+            Debug.Log("previousValue (_int): " + previousValue._int + " | newValue: (_int)" + newValue._int);
+            Debug.Log("previousValue (_bool): " + previousValue._bool + " | newValue: (_bool)" + newValue._bool);
+            //Debug.Log("OwnerClientId: " + OwnerClientId + " | randomNumber: " + randomNumber.Value);
         };
         
     }
@@ -35,9 +58,12 @@ public class PlayerNetwork : NetworkBehaviour {
             return;
         }
 
-        // generates a rnadom number to be stored in NetworkVariable
+        // generates a rnadom number to be stored in struct, which in turn is stored as a NetworkVariable
         if (Input.GetKeyDown(KeyCode.T)) {
-            randomNumber.Value = Random.Range(0,100);
+            randomNumber.Value = new MyCustomData {
+                _int = Random.Range(0,100),
+                _bool = false
+            };
         }
 
         // basic player movement
