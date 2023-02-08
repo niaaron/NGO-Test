@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -13,7 +14,8 @@ public class PlayerNetwork : NetworkBehaviour {
     private NetworkVariable<MyCustomData> randomNumber = new NetworkVariable<MyCustomData>(
         new MyCustomData {
             _int = 56,
-            _bool = true
+            _bool = true,
+            message = "hello!"
         }, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
 
@@ -22,12 +24,16 @@ public class PlayerNetwork : NetworkBehaviour {
     public struct MyCustomData : INetworkSerializable {
         public int _int;
         public bool _bool;
+        // since string is a reference type, a FixedString must be used instead (has a fixed byte size)
+        // must use FixedString#Bytes subclasses and NOT FixedString# subclasses as the later have been deprecated
+        public FixedString32Bytes message;
 
         // implemented from INetworkSerializable
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref _int);
             serializer.SerializeValue(ref _bool);
+            serializer.SerializeValue(ref message);
         }
     }
     
@@ -37,8 +43,9 @@ public class PlayerNetwork : NetworkBehaviour {
         // delegation requires two parameters (previousValue and newValue parameters get passed into function)
         // here we are refering to the custom type created from struct and accessing the int from the struct
         randomNumber.OnValueChanged += (MyCustomData previousValue, MyCustomData newValue) => {
-            Debug.Log("previousValue (_int): " + previousValue._int + " | newValue: (_int)" + newValue._int);
-            Debug.Log("previousValue (_bool): " + previousValue._bool + " | newValue: (_bool)" + newValue._bool);
+            Debug.Log("previousValue (_int): " + previousValue._int + " | newValue (_int): " + newValue._int);
+            Debug.Log("previousValue (_bool): " + previousValue._bool + " | newValue (_bool): " + newValue._bool);
+            Debug.Log("previousValue (message): " + previousValue.message + " | newValue (message): " + newValue.message);
             //Debug.Log("OwnerClientId: " + OwnerClientId + " | randomNumber: " + randomNumber.Value);
         };
         
@@ -62,7 +69,8 @@ public class PlayerNetwork : NetworkBehaviour {
         if (Input.GetKeyDown(KeyCode.T)) {
             randomNumber.Value = new MyCustomData {
                 _int = Random.Range(0,100),
-                _bool = false
+                _bool = false,
+                message = "I have been updated"
             };
         }
 
