@@ -7,9 +7,9 @@ public class PlayerNetwork : NetworkBehaviour {
     [SerializeField] private float movementSpeed = 3f;
 
     // network variable is synced across server/host and client
-    // passed perms that allow 
+    // normally, clients do not have perms to modify NetworkVariable. passed perms that allow client to also make changes
     //private NetworkVariable<int> randomNumber = new NetworkVariable<int>(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    // here we pass custom data type struct into NetworkVariable
+    // here we pass custom struct into NetworkVariable
     private NetworkVariable<MyCustomData> randomNumber = new NetworkVariable<MyCustomData>(
         new MyCustomData {
             _int = 56,
