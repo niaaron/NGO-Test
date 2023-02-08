@@ -5,6 +5,22 @@ using UnityEngine;
 
 public class PlayerNetwork : NetworkBehaviour {
     [SerializeField] private float movementSpeed = 3f;
+
+    // network variable is synced across server/host and client
+    // passed perms that allow 
+    private NetworkVariable<int> randomNumber = new NetworkVariable<int>(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+    // runs when an owned NetworkVariable gets updated
+    public override void OnNetworkSpawn() {
+        // onValueChange delegation gets run everytime the NetworkVariable is updated
+        // delegation requires two parameters (previousValue and newValue parameters get passed into function)
+        randomNumber.OnValueChanged += (int previousValue, int newValue) => {
+            Debug.Log("previousValue: " + previousValue + " | newValue: " + newValue);
+            Debug.Log("OwnerClientId: " + OwnerClientId + " | randomNumber: " + randomNumber.Value);
+        };
+        
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -17,6 +33,11 @@ public class PlayerNetwork : NetworkBehaviour {
         // IsOwner extended from NetworkBehaviour
         if (!IsOwner) {
             return;
+        }
+
+        // generates a rnadom number to be stored in NetworkVariable
+        if (Input.GetKeyDown(KeyCode.T)) {
+            randomNumber.Value = Random.Range(0,100);
         }
 
         // basic player movement
